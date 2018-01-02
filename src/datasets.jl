@@ -52,6 +52,8 @@ Return rating type.
 """
 Base.eltype(preferences::RatingPreferences) = eltype(preferences.possibles)
 
+Base.unique(preferences::RatingPreferences) = preferences.possibles
+
 possiblesratings(preferences::RatingPreferences) = preferences.possibles
 possiblesratings(ds::CFDatasetAbstract) = possiblesratings(ds.preferences)
 
@@ -68,7 +70,7 @@ function Base.round{T}(rating::T, preferences::RatingPreferences{T})
   return ratings[find(r->r == minimum(m), m)[end]]
 end
 
-Base.round(rating::Float64, preferences::RatingPreferences{Int}) = Base.round(convert(Int, round(rating)), preferences)
+Base.round(rating::AbstractFloat, preferences::RatingPreferences{Int}) = Base.round(convert(Int, round(rating)), preferences)
 Base.round{T}(rating, preferences::RatingPreferences{T}) = Base.round(convert(T, rating), preferences)
 
 recommendation(preferences::RatingPreferences) = maximum(preferences) - round(1/3 * (maximum(preferences) -  minimum(preferences)))
