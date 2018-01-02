@@ -52,6 +52,11 @@ Return rating type.
 """
 Base.eltype(preferences::RatingPreferences) = eltype(preferences.possibles)
 
+"""
+    unique(preferences::RatingPreferences)
+
+Return all ratings possibilities.
+"""
 Base.unique(preferences::RatingPreferences) = preferences.possibles
 
 possiblesratings(preferences::RatingPreferences) = preferences.possibles
