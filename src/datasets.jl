@@ -43,14 +43,14 @@ Base.maximum(preferences::RatingPreferences) = preferences.max
 
 Return number of elements contained in the rating preferences.
 """
-Base.size(preferences::RatingPreferences) = length(preferences.possibles)
+Base.size(preferences::RatingPreferences) = length(unique(preferences))
 
 """
     eltype(preferences::RatingPreferences)
 
 Return rating type.
 """
-Base.eltype(preferences::RatingPreferences) = eltype(preferences.possibles)
+Base.eltype(preferences::RatingPreferences) = eltype(unique(preferences))
 
 """
     unique(preferences::RatingPreferences)
@@ -59,7 +59,7 @@ Return all ratings possibilities.
 """
 Base.unique(preferences::RatingPreferences) = preferences.possibles
 
-possiblesratings(preferences::RatingPreferences) = preferences.possibles
+possiblesratings(preferences::RatingPreferences) = unique(preferences)
 possiblesratings(ds::CFDatasetAbstract) = possiblesratings(ds.preferences)
 
 """
