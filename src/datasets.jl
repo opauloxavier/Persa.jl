@@ -63,20 +63,24 @@ possiblesratings(preferences::RatingPreferences) = preferences.possibles
 possiblesratings(ds::CFDatasetAbstract) = possiblesratings(ds.preferences)
 
 """
-    round{T}(rating::T, preferences::RatingPreferences{T})
+    round{T, W <: Real}(rating::W, preferences::RatingPreferences{T})
 
 Returns the nearest integral value of the rating preferences.
 """
-function Base.round{T}(rating::T, preferences::RatingPreferences{T})
-  ratings = sort(preferences.possibles)
+function Base.round{T, W <: Real}(rating::W, preferences::RatingPreferences{T})
+  ratings = sort(unique(preferences))
 
   m = abs.(rating .- ratings)
 
   return ratings[find(r->r == minimum(m), m)[end]]
 end
 
-Base.round(rating::AbstractFloat, preferences::RatingPreferences{Int}) = Base.round(convert(Int, round(rating)), preferences)
-Base.round{T}(rating, preferences::RatingPreferences{T}) = Base.round(convert(T, rating), preferences)
+"""
+    Base.round{T, W <: Real}(ratings::Array{W, 1}, preferences::RatingPreferences{T})
+
+Returns the nearest integral value of the rating preferences.
+"""
+Base.round{T, W <: Real}(ratings::Array{W, 1}, preferences::RatingPreferences{T}) = [round(rating, preferences) for rating in ratings]
 
 recommendation(preferences::RatingPreferences) = maximum(preferences) - round(1/3 * (maximum(preferences) -  minimum(preferences)))
 recommendation(ds::CFDatasetAbstract) = recommendation(ds.preferences)

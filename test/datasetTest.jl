@@ -9,6 +9,7 @@
         @test length(ds.preferences.possibles) == 9
         @test ds.preferences.min == 1
         @test ds.preferences.max == 5
+        @test unique(ds.preferences) == [1.0:0.5:5.0...]
     end
 
     @testset "Holdout" begin
@@ -51,6 +52,8 @@
         @test size(ds_train.preferences) == 9
         @test round(1.1, ds_train.preferences) == 1.0
         @test round(1, ds_train.preferences) == 1.0
+        @test round([1.1, 1.2, 2.4], ds_train.preferences) == [1.0, 1.0, 2.5]
+        @test round([1, 1, 2], ds_train.preferences) == [1.0, 1.0, 2.0]
         @test Persa.recommendation(ds_train) == 4.0
         @test Persa.recommendation(ds_train.preferences) == 4.0
         @test Persa.recommendation(ds_train.preferences) == Persa.recommendation(ds_train)
