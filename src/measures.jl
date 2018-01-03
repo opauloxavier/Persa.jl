@@ -28,8 +28,10 @@ struct AccuracyMeasures <: CFMetrics
   coverage::Float64
 end
 
-struct DecisionMetrics <: CFMetrics
-  roc::MLBase.ROCNums
+struct DecisionMetrics{T} <: CFMetrics
+  confusion::Matrix{Int}
+  map::Dict{T, Int}
+  threshold::Real
 end
 
 AccuracyMeasures(labels::Array, predict::Array) = AccuracyMeasures(mae(labels, predict), rmse(labels, predict), coverage(predict))
@@ -38,11 +40,150 @@ mae(measures::AccuracyMeasures) = measures.mae
 rmse(measures::AccuracyMeasures) = measures.rmse
 coverage(measures::AccuracyMeasures) = measures.coverage
 
-DecisionMetrics(labels::Array, predict::Array, threshold::Number) = DecisionMetrics(roc(labels .>= threshold, predict .>= threshold))
+function DecisionMetrics(model::CFModel, data_test::Array, preferences::RatingPreferences, threshold::Real)
+    predicts = Persa.predict(model, data_test)
+    index = .!isnan.(predicts)
 
-recall(measures::DecisionMetrics) = MLBase.recall(measures.roc)
-precision(measures::DecisionMetrics) = MLBase.precision(measures.roc)
-f1score(measures::DecisionMetrics) = MLBase.f1score(measures.roc)
+    return DecisionMetrics(data_test[index, 3], round(predicts[index], preferences), unique(preferences), threshold::Real)
+end
+
+DecisionMetrics(model::CFModel, data_test::Array, preferences::RatingPreferences) = DecisionMetrics(model, data_test, preferences, recommendation(preferences))
+
+function DecisionMetrics(labels::Array, predict::Array, preferences::Array, threshold::Real)
+    preferencesmap = Dict{eltype(preferences), Int}()
+
+    for i in preferences
+        preferencesmap[i] = length(preferencesmap) + 1
+    end
+
+    confusion = zeros(Int, length(preferences), length(preferences))
+
+    for i = 1:length(labels)
+        confusion[preferencesmap[labels[i]], preferencesmap[predict[i]]] += 1
+    end
+
+    return DecisionMetrics(confusion, preferencesmap, threshold::Real)
+end
+
+function recall{T}(measures::DecisionMetrics{T}, class::T)
+    if !haskey(measures.map, class)
+        error("Invalid class")
+    end
+
+    index = measures.map[class]
+    value = measures.confusion[index, index] ./ (sum(measures.confusion[index, :]))
+
+    if isnan(value) || isinf(value)
+        value = 0
+    end
+
+    return value
+end
+
+function precision{T}(measures::DecisionMetrics{T}, class::T)
+    if !haskey(measures.map, class)
+        error("Invalid class")
+    end
+
+    index = measures.map[class]
+    value = measures.confusion[index, index] ./ (sum(measures.confusion[:, index]))
+
+    if isnan(value) || isinf(value)
+        value = 0
+    end
+
+    return value
+end
+
+function f1score{T}(measures::DecisionMetrics{T}, class::T)
+    pre = precision(measures, class)
+    rec = recall(measures, class)
+
+    value = (2 * pre * rec) / (pre + rec)
+
+    if isnan(value) || isinf(value)
+        value = 0
+    end
+
+    return value
+end
+
+function recall(measures::DecisionMetrics)
+    num = 0
+    dem = 0
+
+    for preference in keys(measures.map)
+        if preference >= measures.threshold
+            index = measures.map[preference]
+            num += measures.confusion[index, index]
+            dem += sum(measures.confusion[index, :])
+        end
+    end
+
+    value = num / dem
+
+    if isnan(value) || isinf(value)
+        value = 0
+    end
+
+    return value
+end
+
+function precision(measures::DecisionMetrics)
+    num = 0
+    dem = 0
+
+    for preference in keys(measures.map)
+        if preference >= measures.threshold
+            index = measures.map[preference]
+            num += measures.confusion[index, index]
+            dem += sum(measures.confusion[:, index])
+        end
+    end
+
+    value = num / dem
+
+    if isnan(value) || isinf(value)
+        value = 0
+    end
+
+    return value
+end
+
+function f1score(measures::DecisionMetrics)
+    pre = precision(measures)
+    rec = recall(measures)
+
+    value = (2 * pre * rec) / (pre + rec)
+
+    if isnan(value) || isinf(value)
+        value = 0
+    end
+
+    return value
+end
+
+function macrof1score(measures::DecisionMetrics)
+    macroprecision = 0
+    macrorecall = 0
+
+    for preference in keys(measures.map)
+        macroprecision += precision(measures, preference)
+        macrorecall += recall(measures, preference)
+    end
+
+    macroprecision = macroprecision / length(keys(measures.map))
+    macrorecall = macrorecall / length(keys(measures.map))
+
+    value = (2 * macroprecision * macrorecall) / (macroprecision + macrorecall)
+
+    if isnan(value) || isinf(value)
+        value = 0
+    end
+
+    return value
+end
+
 
 struct ResultPredict <: CFMetrics
   accuracy::AccuracyMeasures
@@ -95,18 +236,49 @@ function DataFrame(result::AccuracyMeasures)
   return df
 end
 
-function Base.print(result::DecisionMetrics)
-  println("Recall - $(recall(result))")
-  println("Precision - $(precision(result))")
-  println("F1-Score - $(f1score(result))")
+function DataFrame(result::DecisionMetrics)
+    df = DataFrame()
+
+    df[:recall] = recall(result)
+    df[:precision] = precision(result)
+    df[:f1score] = f1score(result)
+
+    ratings = collect(keys(result.map))
+    sort!(ratings)
+
+    for rating in ratings
+        df[Symbol("precision_$(rating)")] = precision(result, rating)
+        df[Symbol("recall_$(rating)")] = recall(result, rating)
+        df[Symbol("f1_$(rating)")] = f1score(result, rating)
+    end
+
+    df[:macrof1] = macrof1score(result)
+
+    return df
 end
 
-function DataFrame(result::DecisionMetrics)
-  df = DataFrame()
-  df[:recall] = recall(result)
-  df[:precision] = precision(result)
-  df[:f1score] = f1score(result)
-  return df
+function Base.print(result::DecisionMetrics)
+    println("Recommendation (r >= $(result.threshold)):")
+
+    println("Recall - $(recall(result))")
+    println("Precision - $(precision(result))")
+    println("F1-Score - $(f1score(result))")
+
+    println("")
+
+    ratings = collect(keys(result.map))
+    sort!(ratings)
+
+    for rating in ratings
+        println("Rating $rating:")
+        println("Precision - $(precision(result, rating))")
+        println("Recall - $(recall(result, rating))")
+        println("F1 - $(f1score(result, rating))")
+        println("")
+    end
+
+    println("Global:")
+    println("Macro F1 - $(macrof1score(result))")
 end
 
 function DataFrame(result::CFMetrics...)
@@ -116,113 +288,4 @@ function DataFrame(result::CFMetrics...)
   end
 
   return df
-end
-
-struct ClassDecisionMeasures <: CFMetrics
-    precision::Dict
-    recall::Dict
-    f1::Dict
-    macrof1::AbstractFloat
-end
-
-aval{T <: CFModel}(model::T, data_test::Array, preferences::RatingPreferences) = ClassDecisionMeasures(model, data_test, preferences)
-
-function ClassDecisionMeasures(model::CFModel, data_test::Array, preferences::RatingPreferences)
-  predicts = Persa.predict(model, data_test)
-
-  #TODO: Better this code
-  values = zeros(eltype(preferences), length(predicts), 1)
-
-  i = 0
-  for i = 1:length(predicts)
-      if !isnan(predicts[i])
-          values[i] = round(predicts[i], preferences)
-      end
-  end
-
-  nonnanindex = find(r->!isnan(r), predicts)
-
-  return ClassDecisionMeasures(data_test[nonnanindex, 3], values[nonnanindex], unique(preferences))
-end
-
-function ClassDecisionMeasures(labels::Array, predict::Array, preferences::Array)
-    preferencesmap = Dict{eltype(preferences), Int}()
-
-    for i in preferences
-        preferencesmap[i] = length(preferencesmap) + 1
-    end
-
-    confusion = zeros(Int, length(preferences), length(preferences))
-
-    for i = 1:length(labels)
-        confusion[preferencesmap[labels[i]], preferencesmap[predict[i]]] += 1
-    end
-
-    precisionmap = Dict{eltype(preferences), AbstractFloat}()
-    recallmap = Dict{eltype(preferences), AbstractFloat}()
-    f1map = Dict{eltype(preferences), AbstractFloat}()
-
-    for preference in preferences
-        index = preferencesmap[preference]
-
-        precision = confusion[index, index] ./ (sum(confusion[:, index]))
-        recall = confusion[index, index] ./ (sum(confusion[index, :]))
-
-        if isnan(precision) || isinf(precision)
-            precision = 0
-        end
-
-        if isnan(recall) || isinf(recall)
-            recall = 0
-        end
-
-        f1 = (2 * precision * recall) / (precision + recall)
-
-        if isnan(f1) || isinf(f1)
-            f1 = 0
-        end
-
-        precisionmap[preference] = precision
-        recallmap[preference] = recall
-        f1map[preference] = f1
-    end
-
-    macroprecision = sum(values(precisionmap)) / length(preferences)
-    macrorecall = sum(values(recallmap)) / length(preferences)
-
-    macrof1 = (2 * macroprecision * macrorecall) / (macroprecision + macrorecall)
-
-    return ClassDecisionMeasures(precisionmap, recallmap, f1map, macrof1)
-end
-
-function DataFrame(result::ClassDecisionMeasures)
-    df = DataFrame()
-    
-    ratings = collect(keys(result.precision))
-    sort!(ratings)
-
-    for rating in ratings
-        df[Symbol("precision_$(rating)")] = result.precision[rating]
-        df[Symbol("recall_$(rating)")] = result.recall[rating]
-        df[Symbol("f1_$(rating)")] = result.f1[rating]
-    end
-
-    df[:macrof1] = result.macrof1
-    return df
-end
-
-function Base.print(result::ClassDecisionMeasures)
-    ratings = collect(keys(result.precision))
-    sort!(ratings)
-
-    for rating in ratings
-        println("Rating $rating:")
-        println("Precision - $(result.precision[rating])")
-        println("Recall - $(result.recall[rating])")
-        println("F1 - $(result.f1[rating])")
-        println("")
-    end
-
-    println("Global:")
-    println("Macro F1 - $(result.macrof1)")
 end
