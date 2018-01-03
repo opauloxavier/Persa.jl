@@ -14,7 +14,7 @@ function rmse(labels::Vector, predicted::Vector)
   for a in A
     s += a*a
   end
-  
+
   return sqrt(s / length(A))
 end
 
@@ -228,8 +228,9 @@ function AccuracyMeasures(model::CFModel, data_test::Array)
   return AccuracyMeasures(data_test[:,3], predicted)
 end
 
-aval{T <: CFModel}(model::T, data_test::Array) = AccuracyMeasures(model, data_test)
-aval{T <: CFModel}(model::T, data_test::Array, threshold::Number) = ResultPredict(model, data_test, threshold)
+aval(model::CFModel, data_test::Array) = AccuracyMeasures(model, data_test)
+aval(model::CFModel, data_test::Array, preferences::RatingPreferences) = ResultPredict(model, data_test, preferences)
+aval(model::CFModel, data_test::Array, preferences::RatingPreferences, threshold::Real) = ResultPredict(model, data_test, preferences, threshold)
 
 function DataFrame(result::AccuracyMeasures)
   df = DataFrame()
@@ -306,6 +307,7 @@ end
 function Base.print(result::ResultPredict)
     println("- Accuracy Metrics")
     print(result.accuracy)
+    println("")
     println("- Decision Metrics")
     print(result.decision)
 end
