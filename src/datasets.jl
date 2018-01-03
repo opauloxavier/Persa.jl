@@ -70,6 +70,10 @@ Returns the nearest integral value of the rating preferences.
 function Base.round{T, W <: Real}(rating::W, preferences::RatingPreferences{T})
   ratings = sort(unique(preferences))
 
+  if isnan(rating)
+      return rating
+  end
+
   m = abs.(rating .- ratings)
 
   return ratings[find(r->r == minimum(m), m)[end]]
