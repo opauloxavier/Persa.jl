@@ -227,9 +227,11 @@ end
 
 function DataFrame(result::AccuracyMeasures)
   df = DataFrame()
-  df[:mae] = result.mae
-  df[:rmse] = result.rmse
-  df[:coverage] = result.coverage
+
+  df[:mae] = mae(result)
+  df[:rmse] = rmse(result)
+  df[:coverage] = coverage(result)
+
   return df
 end
 
