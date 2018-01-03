@@ -38,9 +38,8 @@ coverage(measures::AccuracyMeasures) = measures.coverage
 
 function DecisionMetrics(model::CFModel, data_test::Array, preferences::RatingPreferences, threshold::Real)
     predicts = Persa.predict(model, data_test)
-    index = .!isnan.(predicts)
 
-    return DecisionMetrics(data_test[index, 3], round(predicts[index], preferences), unique(preferences), threshold::Real)
+    return DecisionMetrics(data_test[:, 3], round(predicts, preferences), unique(preferences), threshold::Real)
 end
 
 DecisionMetrics(model::CFModel, data_test::Array, preferences::RatingPreferences) = DecisionMetrics(model, data_test, preferences, recommendation(preferences))
@@ -55,7 +54,9 @@ function DecisionMetrics(labels::Array, predict::Array, preferences::Array, thre
     confusion = zeros(Int, length(preferences), length(preferences))
 
     for i = 1:length(labels)
-        confusion[preferencesmap[labels[i]], preferencesmap[predict[i]]] += 1
+        if !isnan(predict[i])
+            confusion[preferencesmap[labels[i]], preferencesmap[predict[i]]] += 1
+        end
     end
 
     return DecisionMetrics(confusion, preferencesmap, threshold::Real)
@@ -186,7 +187,7 @@ struct ResultPredict <: CFMetrics
   decision::DecisionMetrics
 end
 
-function ResultPredict(model::CFModel, data_test::Array, threshold::Number)
+function ResultPredict(model::CFModel, data_test::Array, threshold::Real)
   predicted = predict(model, data_test)
   acc = AccuracyMeasures(data_test[:,3], predicted)
   dec = DecisionMetrics(data_test[:,3], predicted, threshold)
