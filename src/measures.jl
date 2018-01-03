@@ -262,7 +262,7 @@ DataFrame(result::ResultPredict) = hcat(DataFrame(result.accuracy), DataFrame(re
 function DataFrame(result::CFMetrics...)
   df = DataFrame()
   for i=1:length(result)
-    df = hcat(df, DataFrame(result[i]))
+    df = vcat(df, DataFrame(result[i]))
   end
 
   return df
