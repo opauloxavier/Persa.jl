@@ -1,5 +1,3 @@
-using MLBase
-
 #Mean absolute error (MAE)
 mae(labels, predicted) = mean(abs.(predicted[find(r -> r > 0, predicted),1] - labels[find(r -> r > 0, predicted),1]));
 
@@ -18,9 +16,7 @@ end
 #Coverage
 coverage(predicted) = length(find(r-> r > 0, predicted[:,1])) ./ length(predicted[:,1]);
 
-abstract type CFMetrics
-
-end
+abstract type CFMetrics end
 
 struct AccuracyMeasures <: CFMetrics
   mae::Float64
