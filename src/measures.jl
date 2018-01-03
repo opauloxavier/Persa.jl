@@ -39,23 +39,25 @@ coverage(measures::AccuracyMeasures) = measures.coverage
 function DecisionMetrics(model::CFModel, data_test::Array, preferences::RatingPreferences, threshold::Real)
     predicts = Persa.predict(model, data_test)
 
-    return DecisionMetrics(data_test[:, 3], round(predicts, preferences), unique(preferences), threshold::Real)
+    return DecisionMetrics(data_test[:, 3], predicts, preferences, threshold::Real)
 end
 
 DecisionMetrics(model::CFModel, data_test::Array, preferences::RatingPreferences) = DecisionMetrics(model, data_test, preferences, recommendation(preferences))
 
-function DecisionMetrics(labels::Array, predict::Array, preferences::Array, threshold::Real)
+function DecisionMetrics(labels::Array, predicts::Array, preferences::RatingPreferences, threshold::Real)
+    roundpredicts = round(predicts, preferences)
+
     preferencesmap = Dict{eltype(preferences), Int}()
 
-    for i in preferences
+    for i in sort(unique(preferences))
         preferencesmap[i] = length(preferencesmap) + 1
     end
 
-    confusion = zeros(Int, length(preferences), length(preferences))
+    confusion = zeros(Int, size(preferences), size(preferences))
 
     for i = 1:length(labels)
-        if !isnan(predict[i])
-            confusion[preferencesmap[labels[i]], preferencesmap[predict[i]]] += 1
+        if !isnan(roundpredicts[i])
+            confusion[preferencesmap[labels[i]], preferencesmap[roundpredicts[i]]] += 1
         end
     end
 
@@ -181,23 +183,35 @@ function macrof1score(measures::DecisionMetrics)
     return value
 end
 
-
-struct ResultPredict <: CFMetrics
+struct ResultPredict{T} <: CFMetrics
   accuracy::AccuracyMeasures
-  decision::DecisionMetrics
+  decision::DecisionMetrics{T}
 end
 
-function ResultPredict(model::CFModel, data_test::Array, threshold::Real)
+function ResultPredict(model::CFModel, data_test::Array, preferences::RatingPreferences, threshold::Real)
   predicted = predict(model, data_test)
+
   acc = AccuracyMeasures(data_test[:,3], predicted)
-  dec = DecisionMetrics(data_test[:,3], predicted, threshold)
+  dec = DecisionMetrics(data_test[:,3], predicted, preferences, threshold)
 
   return ResultPredict(acc, dec)
 end
 
+ResultPredict(model::CFModel, data_test::Array, preferences::RatingPreferences) = ResultPredict(model, data_test, preferences, recommendation(preferences))
+
 mae(measures::ResultPredict) = mae(measures.accuracy)
 rmse(measures::ResultPredict) = rmse(measures.accuracy)
 coverage(measures::ResultPredict) = coverage(measures.accuracy)
+
+recall(measures::ResultPredict) = recall(measures.decision)
+precision(measures::ResultPredict) = precision(measures.decision)
+f1score(measures::ResultPredict) = f1score(measures.decision)
+
+recall{T}(measures::ResultPredict{T}, class::T) = recall(measures.decision, class)
+precision{T}(measures::ResultPredict{T}, class::T) = precision(measures.decision, class)
+f1score{T}(measures::ResultPredict{T}, class::T) = f1score(measures.decision, class)
+
+macrof1score(measures::ResultPredict) = macrof1score(measures.decision)
 
 recall(measures::ResultPredict) = recall(measures.decision)
 precision(measures::ResultPredict) = precision(measures.decision)
@@ -211,19 +225,6 @@ end
 
 aval{T <: CFModel}(model::T, data_test::Array) = AccuracyMeasures(model, data_test)
 aval{T <: CFModel}(model::T, data_test::Array, threshold::Number) = ResultPredict(model, data_test, threshold)
-
-function Base.print(result::ResultPredict)
-  print(result.accuracy)
-  print(result.decision)
-end
-
-DataFrame(result::ResultPredict) = hcat(DataFrame(result.accuracy), DataFrame(result.decision))
-
-function Base.print(result::AccuracyMeasures)
-  println("MAE - $(mae(result))")
-  println("RMSE - $(rmse(result))")
-  println("Coverage - $(coverage(result))")
-end
 
 function DataFrame(result::AccuracyMeasures)
   df = DataFrame()
@@ -256,6 +257,23 @@ function DataFrame(result::DecisionMetrics)
     return df
 end
 
+DataFrame(result::ResultPredict) = hcat(DataFrame(result.accuracy), DataFrame(result.decision))
+
+function DataFrame(result::CFMetrics...)
+  df = DataFrame()
+  for i=1:length(result)
+    df = hcat(df, DataFrame(result[i]))
+  end
+
+  return df
+end
+
+function Base.print(result::AccuracyMeasures)
+  println("MAE - $(mae(result))")
+  println("RMSE - $(rmse(result))")
+  println("Coverage - $(coverage(result))")
+end
+
 function Base.print(result::DecisionMetrics)
     println("Recommendation (r >= $(result.threshold)):")
 
@@ -280,11 +298,9 @@ function Base.print(result::DecisionMetrics)
     println("Macro F1 - $(macrof1score(result))")
 end
 
-function DataFrame(result::CFMetrics...)
-  df = DataFrame()
-  for i=1:length(result)
-    df = hcat(df, DataFrame(result[i]))
-  end
-
-  return df
+function Base.print(result::ResultPredict)
+    println("- Accuracy Metrics")
+    print(result.accuracy)
+    println("- Decision Metrics")
+    print(result.decision)
 end
