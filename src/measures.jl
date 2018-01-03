@@ -1,20 +1,25 @@
 #Mean absolute error (MAE)
-mae(labels, predicted) = mean(abs.(predicted[find(r -> r > 0, predicted),1] - labels[find(r -> r > 0, predicted),1]));
+function mae(labels::Vector, predicted::Vector)
+    index = .!isnan.(predicted)
 
+    return mean(abs.(predicted[index] - labels[index]));
+end
 #Root mean squared error (RMSE)
-function rmse(labels, predicted)
+function rmse(labels::Vector, predicted::Vector)
   s = 0.0
 
-  A = predicted[find(r -> r > 0, predicted),1] - labels[find(r -> r > 0, predicted),1];
+  index = .!isnan.(predicted)
+  A = predicted[index] - labels[index];
 
   for a in A
     s += a*a
   end
+  
   return sqrt(s / length(A))
 end
 
 #Coverage
-coverage(predicted) = length(find(r-> r > 0, predicted[:,1])) ./ length(predicted[:,1]);
+coverage(predicted::Vector) = length(find(r->!r, isnan.(predicted))) ./ length(predicted);
 
 abstract type CFMetrics end
 
