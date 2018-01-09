@@ -1,5 +1,20 @@
+@testset "Accuracy Metrics Test" begin
+    labels = [1, 1, 1, 1, 1]
+    predicts = [1, 1, 1, 1, 1]
+
+    @test Persa.mae(labels, predicts) == 0.0
+    @test Persa.rmse(labels, predicts) == 0.0
+
+    labels = [1, 1]
+    predicts = [1, NaN]
+
+    @test Persa.mae(labels, predicts) == 0.0
+    @test Persa.rmse(labels, predicts) == 0.0
+    @test Persa.coverage(predicts) == 0.5
+end
+
 @testset "Decision Metrics Test" begin
-    @testset "Integer Preferences" begin
+    @testset "Validation Tests" begin
         preferences = Persa.RatingPreferences([1, 2, 3, 4, 5])
         threshold = 4.0
 
@@ -23,6 +38,11 @@
 
         @test_throws AssertionError Persa.DecisionMetrics(labels, predicts, preferences, 10)
         @test_throws AssertionError Persa.DecisionMetrics(labels, predicts, preferences, -1)
+    end
+
+    @testset "Integer Preferences" begin
+        preferences = Persa.RatingPreferences([1, 2, 3, 4, 5])
+        threshold = 4.0
 
         result = Persa.DecisionMetrics(labels, predicts, preferences, threshold)
 
@@ -107,5 +127,19 @@
         @test Persa.precision(result) == 0.5
         @test Persa.recall(result) == 1.0
         @test Persa.f1score(result) == 2/3
+    end
+
+    @testset "Float Preferences" begin
+        preferences = Persa.RatingPreferences([0.5:0.5:8.0...])
+        threshold = 6.5
+
+        labels = [1.0]
+        predicts = [1.0]
+
+        result = Persa.DecisionMetrics(labels, predicts, preferences, threshold)
+
+        @test Persa.precision(result, 1.0) == 1.0
+        @test Persa.recall(result, 1.0) == 1.0
+        @test Persa.f1score(result, 1.0) == 1.0
     end
 end
