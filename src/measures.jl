@@ -222,10 +222,6 @@ f1score{T}(measures::ResultPredict{T}, class::T) = f1score(measures.decision, cl
 
 macrof1score(measures::ResultPredict) = macrof1score(measures.decision)
 
-recall(measures::ResultPredict) = recall(measures.decision)
-precision(measures::ResultPredict) = precision(measures.decision)
-f1score(measures::ResultPredict) = f1score(measures.decision)
-
 function AccuracyMeasures(model::CFModel, data_test::Array)
   predicted = predict(model, data_test)
 
