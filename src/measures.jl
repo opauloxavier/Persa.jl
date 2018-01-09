@@ -50,6 +50,10 @@ end
 DecisionMetrics(model::CFModel, data_test::Array, preferences::RatingPreferences) = DecisionMetrics(model, data_test, preferences, recommendation(preferences))
 
 function DecisionMetrics(labels::Array, predicts::Array, preferences::RatingPreferences, threshold::Real)
+    @assert length(labels) == length(predicts) "Array of labels don't have the same size then predicts ones"
+    @assert length(labels) > 0 "Labels/Predicts don't have elements"
+    @assert threshold >= minimum(preferences) && threshold <= maximum(preferences) "Incorrect value of threshold"
+
     roundpredicts = round(predicts, preferences)
 
     preferencesmap = Dict{eltype(preferences), Int}()
