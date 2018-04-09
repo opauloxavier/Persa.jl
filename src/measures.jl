@@ -2,6 +2,10 @@
 function mae(labels::Vector, predicted::Vector)
     index = .!isnan.(predicted)
 
+    if isempty(index)
+        return Inf
+    end
+
     return mean(abs.(predicted[index] - labels[index]));
 end
 #Root mean squared error (RMSE)
@@ -9,6 +13,11 @@ function rmse(labels::Vector, predicted::Vector)
   s = 0.0
 
   index = .!isnan.(predicted)
+
+  if isempty(index)
+      return Inf
+  end
+
   A = predicted[index] - labels[index];
 
   for a in A
