@@ -44,6 +44,11 @@ struct DecisionMetrics{T} <: CFMetrics
   threshold::Real
 end
 
+struct RankAccuracy <: CFMetrics
+  ndcg::Float64
+  ndcg_k::Array{Tuple{Int, Float64}}
+end
+
 AccuracyMeasures(labels::Array, predict::Array) = AccuracyMeasures(mae(labels, predict), rmse(labels, predict), coverage(predict))
 
 mae(measures::AccuracyMeasures) = measures.mae
@@ -204,6 +209,7 @@ end
 struct ResultPredict{T} <: CFMetrics
   accuracy::AccuracyMeasures
   decision::DecisionMetrics{T}
+  rank::RankAccuracy
 end
 
 function ResultPredict(model::CFModel, data_test::Array, preferences::RatingPreferences, threshold::Real)
@@ -211,8 +217,9 @@ function ResultPredict(model::CFModel, data_test::Array, preferences::RatingPref
 
   acc = AccuracyMeasures(data_test[:,3], predicted)
   dec = DecisionMetrics(data_test[:,3], predicted, preferences, threshold)
+  ran = RankAccuracy(predicted, data_test)
 
-  return ResultPredict(acc, dec)
+  return ResultPredict(acc, dec, ran)
 end
 
 ResultPredict(model::CFModel, data_test::Array, preferences::RatingPreferences) = ResultPredict(model, data_test, preferences, recommendation(preferences))
@@ -231,11 +238,76 @@ f1score{T}(measures::ResultPredict{T}, class::T) = f1score(measures.decision, cl
 
 macrof1score(measures::ResultPredict) = macrof1score(measures.decision)
 
+ndcg(measures::ResultPredict) = ndcg(measures.rank)
+
 function AccuracyMeasures(model::CFModel, data_test::Array)
   predicted = predict(model, data_test)
 
   return AccuracyMeasures(data_test[:,3], predicted)
 end
+
+ndcg(model::Persa.CFModel, ds_test::Array) = ndcg(Persa.predict(model, ds_test), ds_test)
+
+function ndcg(predicts::Array, ds_test::Array)
+    max_k = 0
+    for user in unique(ds_test[:,1])
+        index = find(r->r == user, ds_test[:,1])
+
+        if length(index) > max_k
+            max_k = length(index)
+        end
+    end
+
+    return ndcg(predicts, ds_test, max_k)
+end
+
+ndcg(model::Persa.CFModel, ds_test::Array, k::Int) = ndcg(Persa.predict(model, ds_test), ds_test, k)
+
+function ndcg(predicts::Array, ds_test::Array, k::Int)
+    ndcg = 0
+    total = 0
+
+    for user in unique(ds_test[:,1])
+        index = find(r->r == user, ds_test[:,1])
+
+        if length(index) > 0
+            perfect_list = sortrows(hcat(index, ds_test[index,3]), lt=(x,y)->isless(x[2],y[2]), rev = true)
+            predict_list = sortrows(hcat(index, predicts[index]), lt=(x,y)->isless(x[2],y[2]), rev = true)
+
+            ndcg += dcg(ds_test[predict_list[:,1], 3], k) ./ dcg(perfect_list[:,2], k)
+            total += 1
+        end
+    end
+
+    return ndcg ./ total
+end
+
+
+function dcg(values::Vector, k::Int)
+    elements = length(values) > k ? k : length(values)
+
+    dcg = 0
+
+    for i = 1:elements
+        dcg += values[i] ./ log2(1 + i)
+    end
+
+    return dcg
+end
+
+dcg(values::Vector) = dcg(values, length(values))
+
+function RankAccuracy(predicts::Array, data_test::Array; ks::Vector{Int} = [5, 10, 20, 50])
+    values = Array{Tuple{Int, Float64}}(length(ks))
+
+    for i = 1:length(ks)
+        values[i] = (ks[i], ndcg(predicts, data_test, ks[i]))
+    end
+
+    return RankAccuracy(ndcg(predicts, data_test), values)
+end
+
+ndcg(rank::RankAccuracy) = rank.ndcg
 
 aval(model::CFModel, data_test::Array) = AccuracyMeasures(model, data_test)
 aval(model::CFModel, data_test::Array, preferences::RatingPreferences) = ResultPredict(model, data_test, preferences)
@@ -272,7 +344,19 @@ function DataFrame(result::DecisionMetrics)
     return df
 end
 
-DataFrame(result::ResultPredict) = hcat(DataFrame(result.accuracy), DataFrame(result.decision))
+function DataFrame(result::RankAccuracy)
+    df = DataFrame()
+
+    df[:ndcg] = ndcg(result)
+
+    for (k, value) in result.ndcg_k
+        df[Symbol("ndcg_$(k)")] = value
+    end
+
+    return df
+end
+
+DataFrame(result::ResultPredict) = hcat(DataFrame(result.accuracy), DataFrame(result.decision), DataFrame(result.rank))
 
 function DataFrame(result::CFMetrics...)
   df = DataFrame()
@@ -313,10 +397,23 @@ function Base.print(result::DecisionMetrics)
     println("Macro F1 - $(macrof1score(result))")
 end
 
+function Base.print(result::RankAccuracy)
+    df = DataFrame()
+
+    println("NDCG - $(ndcg(result))")
+
+    for (k, value) in result.ndcg_k
+        println("NDCG $(k) - $(value)")
+    end
+end
+
 function Base.print(result::ResultPredict)
     println("- Accuracy Metrics")
     print(result.accuracy)
     println("")
     println("- Decision Metrics")
     print(result.decision)
+    println("")
+    println("- Rank Metrics")
+    print(result.rank)
 end
