@@ -143,3 +143,7 @@ end
         @test Persa.f1score(result, 1.0) == 1.0
     end
 end
+
+@testset "Rank Metrics Test" begin
+    
+end
