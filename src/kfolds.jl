@@ -5,7 +5,7 @@ struct KFolds{T<:CFDatasetAbstract}
     T
 end
 
-KFolds{T<:CFDatasetAbstract}(dataset::T, k::Int) = KFolds(dataset, splitKFold(length(dataset), k), k, T)
+KFolds(dataset::T, k::Int) where T<:CFDatasetAbstract = KFolds(dataset, splitKFold(length(dataset), k), k, T)
 
 getTrainIndex(kfold::KFolds, fold::Int) = find(r -> r != fold, kfold.index)
 getTestIndex(kfold::KFolds, fold::Int) = find(r -> r == fold, kfold.index)
@@ -26,7 +26,7 @@ function splitKFold(y, num_folds)
   group = 1;
 
   while cursor<=y
-    this_fold_size = group <= remainder ? fold_size+1:fold_size;
+    this_fold_size = group <= remainder ? fold_size+1 : fold_size;
     groups[i[cursor:cursor+this_fold_size-1]] = group;
     group += 1;
     cursor += this_fold_size;

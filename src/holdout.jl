@@ -5,7 +5,7 @@ struct HoldOut{T<:CFDatasetAbstract}
     T
 end
 
-HoldOut{T<:CFDatasetAbstract}(dataset::T, margin::Float64) = HoldOut(dataset, shuffle(collect(1:length(dataset))), margin, T)
+HoldOut(dataset::T, margin::Float64) where T<:CFDatasetAbstract = HoldOut(dataset, shuffle(collect(1:length(dataset))), margin, T)
 
 get(holdout::HoldOut) = (getTrainData(holdout), getTestData(holdout))
 

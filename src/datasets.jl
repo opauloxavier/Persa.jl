@@ -22,7 +22,7 @@ struct CFDataset <: CFDatasetAbstract
   preferences::RatingPreferences
 end
 
-RatingPreferences{T<:Real}(possibles::Array{T, 1}) = RatingPreferences(sort(possibles), minimum(possibles), maximum(possibles))
+RatingPreferences(possibles::Array{T, 1}) where T <: Real = RatingPreferences(sort(possibles), minimum(possibles), maximum(possibles))
 
 """
     minimum(preferences::RatingPreferences)
@@ -56,11 +56,11 @@ possiblesratings(preferences::RatingPreferences) = preferences.possibles
 possiblesratings(ds::CFDatasetAbstract) = possiblesratings(ds.preferences)
 
 """
-    round{T}(rating::T, preferences::RatingPreferences{T})
+    round(rating::T, preferences::RatingPreferences{T}) where T
 
 Returns the nearest integral value of the rating preferences.
 """
-function Base.round{T}(rating::T, preferences::RatingPreferences{T})
+function Base.round(rating::T, preferences::RatingPreferences{T}) where T
   ratings = sort(preferences.possibles)
 
   m = abs.(rating .- ratings)
@@ -69,7 +69,7 @@ function Base.round{T}(rating::T, preferences::RatingPreferences{T})
 end
 
 Base.round(rating::Float64, preferences::RatingPreferences{Int}) = Base.round(convert(Int, round(rating)), preferences)
-Base.round{T}(rating, preferences::RatingPreferences{T}) = Base.round(convert(T, rating), preferences)
+Base.round(rating, preferences::RatingPreferences{T}) where T = Base.round(convert(T, rating), preferences)
 
 recommendation(preferences::RatingPreferences) = maximum(preferences) - round(1/3 * (maximum(preferences) -  minimum(preferences)))
 recommendation(ds::CFDatasetAbstract) = recommendation(ds.preferences)
@@ -118,7 +118,7 @@ Base.length(dataset::CFDatasetAbstract) = size(dataset.file)[1]
 
 sparsity(dataset::CFDatasetAbstract) = length(dataset) / (dataset.users * dataset.items)
 
-Base.copy{T<:CFDatasetAbstract}(dataset::T) = T(deepcopy(dataset.file), dataset.users, dataset.items, dataset.preferences)
+Base.copy(dataset::T) where T <: CFDatasetAbstract = T(deepcopy(dataset.file), dataset.users, dataset.items, dataset.preferences)
 
 getmatrix(dataset::CFDatasetAbstract) = sparse(dataset.file[:user], dataset.file[:item], dataset.file[:rating], dataset.users, dataset.items)
 

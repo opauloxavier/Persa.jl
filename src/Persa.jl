@@ -2,6 +2,8 @@ module Persa
 
 # package code goes here
 
+using Statistics
+
 include("datasets.jl")
 
 include("learn.jl")

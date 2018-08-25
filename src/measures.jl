@@ -71,8 +71,8 @@ function AccuracyMeasures(model::CFModel, data_test::Array)
   return AccuracyMeasures(data_test[:,3], predicted)
 end
 
-aval{T <: CFModel}(model::T, data_test::Array) = AccuracyMeasures(model, data_test)
-aval{T <: CFModel}(model::T, data_test::Array, threshold::Number) = ResultPredict(model, data_test, threshold)
+aval(model::T, data_test::Array) where T <: CFModel = AccuracyMeasures(model, data_test)
+aval(model::T, data_test::Array, threshold::Number) where T <: CFModel = ResultPredict(model, data_test, threshold)
 
 function Base.print(result::ResultPredict)
   print(result.accuracy)

@@ -17,9 +17,9 @@ julia> Persa.predict(model, 1, 1)
 3.53…
 ```
 """
-GlobalMean{T<:CFDatasetAbstract}(dataset::T) = GlobalMean(mean(dataset))
+GlobalMean(dataset::T) where T<:CFDatasetAbstract = GlobalMean(mean(dataset))
 
-train!{T<:CFDatasetAbstract}(model::GlobalMean, dataset::T) = nothing
+train!(model::GlobalMean, dataset::T) where T<:CFDatasetAbstract = nothing
 
 predict(model::GlobalMean, user::Int, item::Int) = model.μ
 

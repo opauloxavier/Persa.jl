@@ -1,9 +1,9 @@
 """
-    Base.mean(dataset::CFDatasetAbstract)
+    Statistics.mean(dataset::CFDatasetAbstract)
 
 Return global mean of collaborative filtering dataset.
 """
-Base.mean(dataset::CFDatasetAbstract) = mean(dataset.file[:rating])
+Statistics.mean(dataset::CFDatasetAbstract) = mean(dataset.file[:rating])
 
 """
     means(dataset::CFDatasetAbstract; mode::Symbol = :user, α::Int = 0)
