@@ -3,6 +3,8 @@ module Persa
 # package code goes here
 
 using Statistics
+using Random
+using SparseArrays
 
 include("datasets.jl")
 
