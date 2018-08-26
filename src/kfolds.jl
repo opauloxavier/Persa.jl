@@ -7,8 +7,8 @@ end
 
 KFolds(dataset::T, k::Int) where T<:CFDatasetAbstract = KFolds(dataset, splitKFold(length(dataset), k), k, T)
 
-getTrainIndex(kfold::KFolds, fold::Int) = find(r -> r != fold, kfold.index)
-getTestIndex(kfold::KFolds, fold::Int) = find(r -> r == fold, kfold.index)
+getTrainIndex(kfold::KFolds, fold::Int) = findall(r -> r != fold, kfold.index)
+getTestIndex(kfold::KFolds, fold::Int) = findall(r -> r == fold, kfold.index)
 
 Base.start(kf::KFolds) = 1
 Base.done(kf::KFolds, state) = state > kf.k
@@ -27,7 +27,7 @@ function splitKFold(y, num_folds)
 
   while cursor<=y
     this_fold_size = group <= remainder ? fold_size+1 : fold_size;
-    groups[i[cursor:cursor+this_fold_size-1]] = group;
+    groups[i[cursor:cursor+this_fold_size-1]] .= group;
     group += 1;
     cursor += this_fold_size;
   end
