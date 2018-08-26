@@ -28,7 +28,7 @@ function rmse(labels::Vector, predicted::Vector)
 end
 
 #Coverage
-coverage(predicted::Vector) = length(find(r->!r, isnan.(predicted))) ./ length(predicted);
+coverage(predicted::Vector) = length(findall(r->!r, isnan.(predicted))) ./ length(predicted);
 
 abstract type CFMetrics end
 
@@ -251,7 +251,7 @@ ndcg(model::Persa.CFModel, ds_test::Array) = ndcg(Persa.predict(model, ds_test),
 function ndcg(predicts::Array, ds_test::Array)
     max_k = 0
     for user in unique(ds_test[:,1])
-        index = find(r->r == user, ds_test[:,1])
+        index = findall(r->r == user, ds_test[:,1])
 
         if length(index) > max_k
             max_k = length(index)
@@ -268,7 +268,7 @@ function ndcg(predicts::Array, ds_test::Array, k::Int)
     total = 0
 
     for user in unique(ds_test[:,1])
-        index = find(r->r == user, ds_test[:,1])
+        index = findall(r->r == user, ds_test[:,1])
 
         if length(index) > 0
             perfect_list = sortrows(hcat(index, ds_test[index,3]), lt=(x,y)->isless(x[2],y[2]), rev = true)

@@ -76,7 +76,7 @@ function Base.round(rating::W, preferences::RatingPreferences{T}) where {T, W <:
 
   m = abs.(rating .- ratings)
 
-  return ratings[find(r->r == minimum(m), m)[end]]
+  return ratings[findall(r->r == minimum(m), m)[end]]
 end
 
 """
@@ -140,11 +140,11 @@ getmatrix(dataset::CFDatasetAbstract) = sparse(dataset.file[:user], dataset.file
 @deprecate getMatrix(dataset::CFDatasetAbstract) getmatrix(dataset)
 
 function Base.getindex(ds::CFDatasetAbstract, idx::Int, c::Colon)
-  return ds.file[find(r->r == idx, ds.file[:user]), [:item, :rating]]
+  return ds.file[findall(r->r == idx, ds.file[:user]), [:item, :rating]]
 end
 
 function Base.getindex(ds::CFDatasetAbstract, c::Colon, idx::Int)
-  return ds.file[find(r->r == idx, ds.file[:item]), [:user, :rating]]
+  return ds.file[findall(r->r == idx, ds.file[:item]), [:user, :rating]]
 end
 
 Base.getindex(ds::CFDatasetAbstract, idx) = (ds.file[:user][idx], ds.file[:item][idx], ds.file[:rating][idx])

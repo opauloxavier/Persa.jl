@@ -34,7 +34,7 @@ function meansusers(dataset::CFDatasetAbstract, α::Int)
   μ = mean(dataset)
 
   for i=1:dataset.users
-    index = find(r->r != 0, matrix[i, :])
+    index = findall(r->r != 0, matrix[i, :])
 
     if length(index) == 0
         b[i,1] = μ
@@ -58,7 +58,7 @@ function meansitems(dataset::CFDatasetAbstract, α::Int)
   μ = mean(dataset)
 
   for i=1:dataset.items
-    index = find(r->r != 0, matrix[:, i])
+    index = findall(r->r != 0, matrix[:, i])
 
     if length(index) == 0
         b[i,1] = μ

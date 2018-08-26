@@ -10,11 +10,11 @@ HoldOut(dataset::T, margin::Float64) where T<:CFDatasetAbstract = HoldOut(datase
 get(holdout::HoldOut) = (getTrainData(holdout), getTestData(holdout))
 
 function getTrainData(holdout::HoldOut)
-  index = find(r -> r < length(holdout.dataset) * holdout.k, holdout.index);
+  index = findall(r -> r < length(holdout.dataset) * holdout.k, holdout.index);
   return holdout.T(holdout.dataset.file[index,:], holdout.dataset.users, holdout.dataset.items, holdout.dataset.preferences)
 end
 
 function getTestData(holdout::HoldOut)
-  index = find(r -> r >= length(holdout.dataset) * holdout.k, holdout.index);
+  index = findall(r -> r >= length(holdout.dataset) * holdout.k, holdout.index);
   return convert(Array, holdout.dataset.file[index,:])
 end
