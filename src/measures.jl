@@ -87,7 +87,7 @@ function DecisionMetrics(labels::Array, predicts::Array, preferences::RatingPref
     return DecisionMetrics(confusion, preferencesmap, threshold::Real)
 end
 
-function recall{T}(measures::DecisionMetrics{T}, class::T)
+function recall(measures::DecisionMetrics{T}, class::T) where T
     if !haskey(measures.map, class)
         error("Invalid class")
     end
@@ -102,7 +102,7 @@ function recall{T}(measures::DecisionMetrics{T}, class::T)
     return value
 end
 
-function precision{T}(measures::DecisionMetrics{T}, class::T)
+function precision(measures::DecisionMetrics{T}, class::T) where T
     if !haskey(measures.map, class)
         error("Invalid class")
     end
@@ -117,7 +117,7 @@ function precision{T}(measures::DecisionMetrics{T}, class::T)
     return value
 end
 
-function f1score{T}(measures::DecisionMetrics{T}, class::T)
+function f1score(measures::DecisionMetrics{T}, class::T) where T
     pre = precision(measures, class)
     rec = recall(measures, class)
 
@@ -232,9 +232,9 @@ recall(measures::ResultPredict) = recall(measures.decision)
 precision(measures::ResultPredict) = precision(measures.decision)
 f1score(measures::ResultPredict) = f1score(measures.decision)
 
-recall{T}(measures::ResultPredict{T}, class::T) = recall(measures.decision, class)
-precision{T}(measures::ResultPredict{T}, class::T) = precision(measures.decision, class)
-f1score{T}(measures::ResultPredict{T}, class::T) = f1score(measures.decision, class)
+recall(measures::ResultPredict{T}, class::T) where T = recall(measures.decision, class)
+precision(measures::ResultPredict{T}, class::T) where T = precision(measures.decision, class)
+f1score(measures::ResultPredict{T}, class::T) where T = f1score(measures.decision, class)
 
 macrof1score(measures::ResultPredict) = macrof1score(measures.decision)
 
