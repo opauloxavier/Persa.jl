@@ -21,11 +21,11 @@
         @test Persa.rmse(measures) >= 0.0
         @test Persa.coverage(measures) >= 1.0
 
-        measures = Persa.aval(model, ds_test, Persa.recommendation(ds_train))
+        measures = Persa.aval(model, ds_test, ds_train.preferences, Persa.recommendation(ds_train))
 
-        @test Persa.f1score(measures) >= 0.0 || isnan(Persa.f1score(measures))
-        @test Persa.recall(measures) >= 0.0 || isnan(Persa.recall(measures))
-        @test Persa.precision(measures) >= 0.0  || isnan(Persa.precision(measures))
+        @test Persa.f1score(measures) >= 0.0
+        @test Persa.recall(measures) >= 0.0
+        @test Persa.precision(measures) >= 0.0
 
         @test Persa.mae(measures) >= 0.0
         @test Persa.rmse(measures) >= 0.0
@@ -39,7 +39,7 @@
 
         df = Persa.DataFrame(measures)
 
-        @test length(df) == 6
+        @test length(df) > 0
     end
 
     @testset "Auxiliar Methods" begin

@@ -5,3 +5,4 @@ using Base.Test
 
 include("datasetTest.jl")
 include("modelTest.jl")
+include("metricsTest.jl")

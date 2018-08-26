@@ -43,33 +43,48 @@ Base.maximum(preferences::RatingPreferences) = preferences.max
 
 Return number of elements contained in the rating preferences.
 """
-Base.size(preferences::RatingPreferences) = length(preferences.possibles)
+Base.size(preferences::RatingPreferences) = length(unique(preferences))
 
 """
     eltype(preferences::RatingPreferences)
 
 Return rating type.
 """
-Base.eltype(preferences::RatingPreferences) = eltype(preferences.possibles)
+Base.eltype(preferences::RatingPreferences) = eltype(unique(preferences))
 
-possiblesratings(preferences::RatingPreferences) = preferences.possibles
+"""
+    unique(preferences::RatingPreferences)
+
+Return all ratings possibilities.
+"""
+Base.unique(preferences::RatingPreferences) = preferences.possibles
+
+possiblesratings(preferences::RatingPreferences) = unique(preferences)
 possiblesratings(ds::CFDatasetAbstract) = possiblesratings(ds.preferences)
 
 """
-    round(rating::T, preferences::RatingPreferences{T}) where T
+    round{T, W <: Real}(rating::W, preferences::RatingPreferences{T})
 
 Returns the nearest integral value of the rating preferences.
 """
-function Base.round(rating::T, preferences::RatingPreferences{T}) where T
-  ratings = sort(preferences.possibles)
+function Base.round{T, W <: Real}(rating::W, preferences::RatingPreferences{T})
+  ratings = sort(unique(preferences))
+
+  if isnan(rating)
+      return rating
+  end
 
   m = abs.(rating .- ratings)
 
   return ratings[find(r->r == minimum(m), m)[end]]
 end
 
-Base.round(rating::Float64, preferences::RatingPreferences{Int}) = Base.round(convert(Int, round(rating)), preferences)
-Base.round(rating, preferences::RatingPreferences{T}) where T = Base.round(convert(T, rating), preferences)
+"""
+    Base.round{T, W <: Real}(ratings::Array{W, 1}, preferences::RatingPreferences{T})
+
+Returns the nearest integral value of the rating preferences.
+"""
+Base.round{T, W <: Real}(ratings::Array{W, 1}, preferences::RatingPreferences{T}) = [round(rating, preferences) for rating in ratings]
 
 recommendation(preferences::RatingPreferences) = maximum(preferences) - round(1/3 * (maximum(preferences) -  minimum(preferences)))
 recommendation(ds::CFDatasetAbstract) = recommendation(ds.preferences)
