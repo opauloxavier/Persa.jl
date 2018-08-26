@@ -14,7 +14,7 @@ end
 
 predict(model::T, dataset::CFDatasetAbstract) where T <: CFModel = predict(model, dataset.file)
 
-predict(model::T, data::DataFrame) where T <: CFModel = predict(model, Array(data))
+predict(model::T, data::DataFrame) where T <: CFModel = predict(model, convert(Array, data))
 
 function canpredict(model::CFModel, user::Int, item::Int)
     depwarn("canPredict is deprecated, use canPredict instead.", :canPredict)
