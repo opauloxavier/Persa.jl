@@ -1,6 +1,5 @@
 using Persa
-using Base.Test
-
+using Test
 #Testing Dataset
 
 include("datasetTest.jl")
